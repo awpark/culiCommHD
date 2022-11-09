@@ -1,5 +1,9 @@
 ### culiCommHD
 
+[**manuscript draft here**](https://docs.google.com/document/d/1qZwOJA70bj_XmoWptO52d6pEu-IyWU4GBe1exahM9Po/edit)
+
+[Google drive folder](https://drive.google.com/drive/u/1/folders/1f-nyMC16aAVEF_TgJf3JzmzThPe1VXCv)
+
 
 
 
