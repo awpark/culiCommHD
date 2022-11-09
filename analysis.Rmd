@@ -1,0 +1,100 @@
+---
+title: "Untitled"
+author: "Andrew W. Park"
+date: '2022-10-26'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r loadLibs}
+library(tidyverse)
+library(magrittr)
+library(maptools)
+library(raster)
+library(metacom)
+```
+
+
+```{r loadData}
+load("get_db.Rda")
+```
+
+
+
+
+```{r wmaLatLong}
+################################
+##Creating Centroids for WMAs##
+################################
+db %>% group_by(Site) %>% summarize(cLat=mean(Lat),cLon=mean(Long))
+```
+
+```{r}
+sites=unique(db$Site)
+sub.db=db[,11:62]
+
+
+#for loop that outputs interaction matrix combining all years
+ret=matrix(0, ncol= 52, nrow=length(sites)) 
+latitude=vector(); longitude=vector()
+for(i in 1:length(sites)){
+  temp=sub.db[which(db$Site==sites[i]),]	
+  ret[i,] = colSums(temp)
+  latitude[i] = mean(db[which(db$Site == sites[i]),'Lat'])
+  longitude[i] = mean(db[which(db$Site == sites[i]),'Long'])
+}
+rownames(ret)=sites; colnames(ret)=colnames(sub.db)
+
+#ret.lat=ret[order(latitude),]
+ret.nozero=ret[-which(rowSums(ret) == 0),]
+ret.nozero=ret.nozero > 0 
+sites.nozero=sites[-which(rowSums(ret)==0)]
+latitude=latitude[-which(rowSums(ret)==0)]
+longitude=longitude[-which(rowSums(ret)==0)]
+
+
+
+#pull out site scores from reciprocal averaging
+scores=OrderMatrix(ret.nozero, scores=1, outputScores=TRUE)
+ret.spatial=ret.nozero[order(latitude),order(scores$speciesscores)]
+
+#Coherence 
+coh.ret.nozero= Coherence(ret.nozero > 0, order=TRUE, sims=100)
+#Species Turnover
+turn.ret.nozero= Turnover(ret.nozero > 0, order=TRUE)
+#Boundary clumping
+clump.ret.nozero= Clumping(ret.nozero > 0, order=TRUE)
+
+#r1
+metaculic.r1=Metacommunity(ret.nozero, method='r1')
+#r1
+metaculic.spatial.r1=Metacommunity(ret.spatial, method='r1', order=FALSE)
+#Coherence 
+coh.ret.spatial= Coherence(ret.spatial > 0, order=TRUE, sims=100)
+#Species Turnover
+turn.ret.spatial= Turnover(ret.spatial > 0, order=TRUE)
+#Boundary clumping
+clump.ret.spatial= Clumping(ret.spatial > 0, order=TRUE)
+
+```
+
+
+
+```{r}
+####### FOR PPT AND MEAN TEMP THE ANNUAL VALUES SHOULD COMPARE EXACTLY WITH PRISM ##########
+ppt<-readAsciiGrid("../prism/prism_worldclim/PRISM_ppt_stable_4kmM2_2009_asc.asc",as.image=F)
+tmean<-readAsciiGrid("PRISM_tmean_stable_4kmM2_2009_asc.asc",as.image=F)
+######## PRECIPITATION ###########
+r.ppt<-raster(ppt)
+r.ppt<-crop(r.ppt,extent(c(-94,-80,24.5,36)))
+prism.ppt<-extract(r.ppt,cbind(met.data$lon,met.data$lat))
+
+
+
+
+```
+
