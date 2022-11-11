@@ -108,32 +108,3 @@ clump.ret.spatial <- BoundaryClump(ret.spatial > 0, order=FALSE)
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-####### FOR PPT AND MEAN TEMP THE ANNUAL VALUES SHOULD COMPARE EXACTLY WITH PRISM ##########
-ppt <- readAsciiGrid("../prism/prism_worldclim/PRISM_ppt_stable_4kmM2_2009_asc.asc",as.image=F)
-tmean <- readAsciiGrid("PRISM_tmean_stable_4kmM2_2009_asc.asc",as.image=F)
-######## PRECIPITATION ###########
-r.ppt <- raster(ppt)
-r.ppt <- crop(r.ppt,extent(c(-94,-80,24.5,36)))
-prism.ppt <- extract(r.ppt,cbind(met.data$lon,met.data$lat))
-
-```
-
