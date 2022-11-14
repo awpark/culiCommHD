@@ -13,3 +13,9 @@ The paper aims to link environmental conditions to transmission hotspots in a ve
 
 For (i) I was thinking to leverage our demonstration of how space has different environmental conditions resulting in spatial heterogeneity in transmission to consider time. I.e., the same place in the future will have different conditions, therefore different vector communities, therefore different transmission potential. The community angle is important as some work is focused on changes in demography/behavior/physiology of a single vector species under climate change – whereas those traits don’t need to change, but rather the environment just filters which species are present/dominant and the ‘community trait’ changes as a result.
 
+
+analysis.Rmd - performs metacommunity analysis
+enviro.Rmd - gets enviro data (+elevation) on centroids of sampling locations of sites
+
+
+

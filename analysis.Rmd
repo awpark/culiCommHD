@@ -23,6 +23,47 @@ library(metacom)
 
 ```{r loadData}
 load("get_db.Rda")
+
+#check for UTM typos
+Vial.ID.issues <- db$Vial.ID[which(db$UTM.1==db$UTM.2)]
+
+#fix a few database typos confirmed by email from Stacey Vigil to Andrew Park (11/11/2022)
+#AP's copy has UTM.2=UTM.1, Stacey looked up correct UTM.2 in original data sheets
+db$UTM.2[which(db$Vial.ID=="FL0276")] <- 2957038
+db$UTM.2[which(db$Vial.ID=="FL0315")] <- 2957057
+db$UTM.2[which(db$Vial.ID=="FL0567")] <- 3001295
+db$UTM.2[which(db$Vial.ID=="FL0568")] <- 3002091
+db$UTM.2[which(db$Vial.ID=="FL0816")] <- 3034831
+db$UTM.2[which(db$Vial.ID=="FL0817")] <- 3034831
+db$UTM.2[which(db$Vial.ID=="FL0818")] <- 3034831
+
+
+#here I [AP] just convert UTM lat/long using http://rcn.montana.edu/resources/Converter.aspx
+#FL is un UTM zone 17 (northern hemisphere)
+#vial FL0276
+db$Lat[which(db$Vial.ID=="FL0276")] <- 26.73170
+db$Long[which(db$Vial.ID=="FL0276")] <- -81.90239
+#vial FL0315
+db$Lat[which(db$Vial.ID=="FL0315")] <- 26.73190
+db$Long[which(db$Vial.ID=="FL0315")] <- -81.89777
+#vial FL0567
+db$Lat[which(db$Vial.ID=="FL0567")] <- 27.12999
+db$Long[which(db$Vial.ID=="FL0567")] <- -82.08142
+#vial FL0568
+db$Lat[which(db$Vial.ID=="FL0568")] <- 27.13710
+db$Long[which(db$Vial.ID=="FL0568")] <- -82.09118
+#vial FL0816
+db$Lat[which(db$Vial.ID=="FL0816")] <- 27.43069
+db$Long[which(db$Vial.ID=="FL0816")] <- -82.31852
+#vial FL0817
+db$Lat[which(db$Vial.ID=="FL0817")] <- 27.43069
+db$Long[which(db$Vial.ID=="FL0817")] <- -82.31852
+#vial FL0818
+db$Lat[which(db$Vial.ID=="FL0818")] <- 27.43069
+db$Long[which(db$Vial.ID=="FL0818")] <- -82.31852
+
+db %<>% dplyr::filter(Lat<35) # four sites are up in Michigan and spatially disconnected from this metacommunity analysis
+
 ```
 
 
@@ -36,6 +77,9 @@ load("get_db.Rda")
 centroids <- db |> 
   group_by(Site) |> 
   summarize(cLat=mean(Lat),cLon=mean(Long))
+
+
+save(centroids,file="get_siteCentroids.Rda")
 
 ```
 

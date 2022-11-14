@@ -14,6 +14,7 @@ library(tidyverse)
 library(magrittr)
 library(maptools)
 library(raster)
+library(elevatr)
 ```
 
 
@@ -199,3 +200,35 @@ sites$prism.tmax<-apply(sites[,which(names(sites)=="prism.tmax.jan"):which(names
 sites$prism.trange<-sites$prism.tmax-sites$prism.tmin
 
 ```
+
+
+```{r}
+#make dataframe abit easier to read
+#first store full df
+sitesFull <- sites
+# then reduce
+sites %<>% dplyr::select(-contains("min."))
+sites %<>% dplyr::select(-contains("max."))
+```
+
+
+```{r addElev, eval=F}
+## add elevation (from USGS using FN elevatr::get_elev_point)
+
+justLatLon <- sites %>% dplyr::select(lon,lat)
+
+justLatLon %<>% mutate(elev=-999)
+for (i in 1:dim(justLatLon)[1]){
+  q <- as.data.frame(justLatLon[i,1:2])
+  tmp <- get_elev_point(q,prj="+proj=longlat +ellps=WGS84",src="epqs",overwrite=T)
+  justLatLon$elev[i] <- tmp$elevation
+}
+
+sites %<>% left_join(.,justLatLon)
+save(sites,file="get_siteData.Rda")
+```
+
+```{r loadAddElev}
+load("get_siteData.Rda")
+```
+
