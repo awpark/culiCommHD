@@ -1,0 +1,122 @@
+---
+title: "Untitled"
+author: "Andrew W. Park"
+date: '2022-11-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loadLibs}
+library(magrittr)
+library(tidyverse)
+library(patchwork)
+```
+
+```{r loadData}
+load("get_finalAnalysis.Rda")
+source(knitr::purl("diseaseKernel.Rmd", quiet=TRUE))
+load("get_siteData.Rda") #load this last as another script temporarily uses value 'sites'
+```
+
+```{r combine}
+# sites have enviro data, disease data and culic score data
+
+# start with sites df (enviro data) and add disease data
+hdDens <- raster::extract(r,cbind(sites$lon,sites$lat))
+sites %<>% mutate(hdDens=hdDens)
+
+#now ad culic score data
+siteScores <- unlist(scores[[2]], recursive = TRUE, use.names = TRUE)
+sc <- tibble(
+  names(siteScores),
+  unname(siteScores)
+)
+
+sc %<>% rename(Site=`names(siteScores)`,score=`unname(siteScores)`)
+sites %<>% left_join(.,sc)
+sites %<>% drop_na(score)
+
+sites %<>% mutate(scorePos=score-min(score))
+sites %<>% mutate(scoreSqrt=sqrt(scorePos))
+sites %<>% mutate(scoreRank=rank(score,ties.method="first"))
+
+```
+
+```{r ordinated}
+# create ordinated matrix for plotting
+om <- metacom::OrderMatrix(ret.nozero) 
+
+omBoundaries <- tibble(first1=numeric(0),last1=numeric(0))
+
+om <- t(om)
+
+for (i in 1:dim(om)[1]){
+  pres <- which(om[i,]==1)
+  first1 <- min(pres)
+  last1 <- max(pres)
+  omBoundaries %<>% add_case(first1=first1,last1=last1)
+}
+
+om2 <- matrix(rep(0,dim(om)[1]*dim(om)[2]),nrow=dim(om)[1])
+for (i in 1:dim(om2)[1]){
+  for (j in as.numeric(omBoundaries[i,1]):as.numeric(omBoundaries[i,2])){
+    om2[i,j] <- 1
+  }
+}
+
+om2 %<>% as_tibble(.)
+om2 %<>% mutate(sp=1:dim(om2)[1])
+om2 %<>% pivot_longer(starts_with("V"),names_to="site",values_to="pres")
+
+levelSites <- c(paste("V",1:212,sep=""))
+levelSp <- 1:52
+om2 %<>% mutate(site=factor(site,levels=levelSites))
+om2 %<>% mutate(sp=factor(sp,levels=levelSp))
+p.ss <- om2 %>% ggplot(.,aes(x=site,y=sp))+geom_tile(aes(fill=as.factor(pres)))+scale_fill_manual(name="Presence",values=c("gray90","gray20"))+xlab("")+ylab("Species\nrange")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank(),axis.text.y=element_blank(),axis.ticks.y=element_blank())+theme(legend.position="none")
+
+
+```
+
+
+
+
+```{r}
+#exploratory plots
+
+p1 <- sites %>% ggplot(.,aes(x=scoreRank,y=elev))+geom_point()+geom_smooth(span=1.0)+xlab("")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())+ylab("Elevation\n(m)")
+p2 <- sites %>% ggplot(.,aes(x=scoreRank,y=prism.ppt))+geom_point()+geom_smooth(span=1.0)+xlab("")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())+ylab("Precipitation\n(mm)")
+p3 <- sites %>% ggplot(.,aes(x=scoreRank,y=prism.tmean))+geom_point()+geom_smooth(span=1.0)+xlab("Sites")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())+ylab("Mean\ntemp (C)")
+p4 <- sites %>% ggplot(.,aes(x=scoreRank,y=prism.trange))+geom_point()+geom_smooth(span=1.0)+xlab("")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())+ylab("Temp\nrange (C)")
+p5 <- sites %>% ggplot(.,aes(x=scoreRank,y=hdDens))+geom_point()+geom_smooth(span=1.0)+xlab("")+theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())+ylab("Kernel density\ndisease reports")
+
+png("test.png",width=400,height=600)
+p5/p.ss/p2/p4/p1/p3
+dev.off()
+
+
+
+
+```
+
+
+```{r gam}
+
+sites %>% ggplot(.,aes(x=score))+geom_histogram()
+sites %>% ggplot(.,aes(x=scoreSqrt))+geom_histogram()
+sites %>% ggplot(.,aes(x=log(score+5)))+geom_histogram()
+
+
+myGam1 <- mgcv::gam(scoreSqrt~s(lon,lat)+
+                      prism.ppt+
+                      prism.tmean+
+                      prism.trange+
+                      elev
+                    ,family=gaussian,data=sites)
+
+
+
+```
+
