@@ -120,3 +120,71 @@ myGam1 <- mgcv::gam(scoreSqrt~s(lon,lat)+
 
 ```
 
+
+```{r}
+library(gbm)
+library(cowplot)
+my.gbm<- gbm(scoreSqrt~lat+lon+prism.ppt+prism.tmean+prism.tmin+prism.tmax+prism.trange+elev,
+            data=sites, distribution="gaussian",n.trees=50000,shrinkage=0.001,interaction.depth=5,bag.fraction=0.70,train.fraction=0.8,n.minobsinnode=5,cv.folds=5,keep.data=TRUE,verbose=TRUE)
+summary(my.gbm)
+
+
+best.iter <- gbm.perf(my.gbm,method="cv")
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.trange")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = prism.trange, y = yhat),color="magenta4",size=1) +
+  xlim(min(sites$prism.trange),max(sites$prism.trange))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(prism.trange) %>%
+  na.omit() %>%
+  ggplot(aes(prism.trange)) +
+  geom_histogram(breaks=seq(min(sites$prism.trange),max(sites$prism.trange), by = 1),fill="thistle2") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Temperature range (C)",size=12)
+p.tRange<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+### REL INFL PLOT
+par(mfrow=c(1,1))
+gbm_full_summary = summary.gbm(my.gbm)
+
+gbm_summary_idx = which(gbm_full_summary$rel.inf > 1)
+
+gbm_full_short = gbm_full_summary[gbm_summary_idx,]
+
+gbm_full_short$var = as.character(gbm_full_short$var)
+
+png("relInf.png")
+colors = ifelse(rev(gbm_full_short$rel.inf) >= 2,'black','snow4')
+par(mfrow=c(1,1),
+    mar=c(5,18,4,2)+0.1)
+bar = barplot(rev(gbm_full_short$rel.inf),
+              horiz = TRUE,
+              xlim = c(0,40),
+              xlab = 'Percent Relative Influence',
+              col = colors )
+
+
+axis(2,
+     at = bar,
+     labels=rev(c('prism.trange', 'prism.tmin', 'prism.tmean', 'lat', 'lon', 'prism.ppt', 'elev', 'prism.tmax'  )),las = 2)
+dev.off()
+
+```
+
