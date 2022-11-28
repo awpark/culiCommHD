@@ -122,20 +122,22 @@ myGam1 <- mgcv::gam(scoreSqrt~s(lon,lat)+
 
 
 ```{r}
+### DO THE GBM
 library(gbm)
 library(cowplot)
 my.gbm<- gbm(scoreSqrt~lat+lon+prism.ppt+prism.tmean+prism.tmin+prism.tmax+prism.trange+elev,
             data=sites, distribution="gaussian",n.trees=50000,shrinkage=0.001,interaction.depth=5,bag.fraction=0.70,train.fraction=0.8,n.minobsinnode=5,cv.folds=5,keep.data=TRUE,verbose=TRUE)
 summary(my.gbm)
 
-
+### PARTIAL DEPENDENCIES
+##### 1. temp range
 best.iter <- gbm.perf(my.gbm,method="cv")
 inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.trange")
 
 plot1 <- inv %>%
   na.omit() %>%
   ggplot() +
-  geom_line(aes(x = prism.trange, y = yhat),color="magenta4",size=1) +
+  geom_line(aes(x = prism.trange, y = yhat),color="black",size=1) +
   xlim(min(sites$prism.trange),max(sites$prism.trange))+
   ylab(" ") +
   theme_minimal() +
@@ -147,7 +149,7 @@ plot2 <- sites %>%
   dplyr::select(prism.trange) %>%
   na.omit() %>%
   ggplot(aes(prism.trange)) +
-  geom_histogram(breaks=seq(min(sites$prism.trange),max(sites$prism.trange), by = 1),fill="thistle2") +
+  geom_histogram(breaks=seq(min(sites$prism.trange),max(sites$prism.trange), by = 1),fill="gray") +
   scale_y_continuous(position = "right")+
   ylab("") +
   theme_minimal() +
@@ -159,8 +161,226 @@ p.tRange<-ggdraw() +
   draw_plot(p2,x=0.05,scale=0.95) +
   draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
 
+###### 2. min temp
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.tmin")
 
-### REL INFL PLOT
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = prism.tmin, y = yhat),color="black",size=1) +
+  xlim(min(sites$prism.tmin),max(sites$prism.tmin))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(prism.tmin) %>%
+  na.omit() %>%
+  ggplot(aes(prism.tmin)) +
+  geom_histogram(breaks=seq(min(sites$prism.tmin),max(sites$prism.tmin), by = 1),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Min. Temp. (C)",size=12)
+p.tMin<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+###### 3. mean temp
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.tmean")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = prism.tmean, y = yhat),color="black",size=1) +
+  xlim(min(sites$prism.tmean),max(sites$prism.tmean))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(prism.tmean) %>%
+  na.omit() %>%
+  ggplot(aes(prism.tmean)) +
+  geom_histogram(breaks=seq(min(sites$prism.tmean),max(sites$prism.tmean), by = 0.5),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Mean Temp. (C)",size=12)
+p.tMean<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+###### 4. lat
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"lat")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = lat, y = yhat),color="black",size=1) +
+  xlim(min(sites$lat),max(sites$lat))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(lat) %>%
+  na.omit() %>%
+  ggplot(aes(lat)) +
+  geom_histogram(breaks=seq(min(sites$lat),max(sites$lat), by = 0.5),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Latitude",size=12)
+p.lat<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+###### 5. lon
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"lon")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = lon, y = yhat),color="black",size=1) +
+  xlim(min(sites$lon),max(sites$lon))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(lon) %>%
+  na.omit() %>%
+  ggplot(aes(lon)) +
+  geom_histogram(breaks=seq(min(sites$lon),max(sites$lon), by = 1),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Longitude",size=12)
+p.lon<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+###### 6. precip
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.ppt")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = prism.ppt, y = yhat),color="black",size=1) +
+  xlim(min(sites$prism.ppt),max(sites$prism.ppt))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(prism.ppt) %>%
+  na.omit() %>%
+  ggplot(aes(prism.ppt)) +
+  geom_histogram(breaks=seq(min(sites$prism.ppt),max(sites$prism.ppt), by = 100),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Precipitation (mm)",size=12)
+p.prismPpt<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+###### 7. elev
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"elev")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = elev, y = yhat),color="black",size=1) +
+  xlim(min(sites$elev),max(sites$elev))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(elev) %>%
+  na.omit() %>%
+  ggplot(aes(elev)) +
+  geom_histogram(breaks=seq(min(sites$elev),max(sites$elev), by = 10),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Elevation (m)",size=12)
+p.elev<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+###### 8. maxTemp
+inv<-pdp::partial(my.gbm,n.trees=best.iter,"prism.tmax")
+
+plot1 <- inv %>%
+  na.omit() %>%
+  ggplot() +
+  geom_line(aes(x = prism.tmax, y = yhat),color="black",size=1) +
+  xlim(min(sites$prism.tmax),max(sites$prism.tmax))+
+  ylab(" ") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank())+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.text=element_text(size=12))
+
+plot2 <- sites %>%
+  dplyr::select(prism.tmax) %>%
+  na.omit() %>%
+  ggplot(aes(prism.tmax)) +
+  geom_histogram(breaks=seq(min(sites$prism.tmax),max(sites$prism.tmax), by =0.5),fill="gray") +
+  scale_y_continuous(position = "right")+
+  ylab("") +
+  theme_minimal() +
+  theme(axis.title.x = element_blank(),axis.text=element_text(size=12))
+
+p1 <- add_sub(plot1," ")
+p2 <- add_sub(plot2,"Max. Temp. (C)",size=12)
+p.tMax<-ggdraw() +
+  draw_plot(p2,x=0.05,scale=0.95) +
+  draw_plot(p1,x=-0.04,scale=0.975,y=0.05) 
+
+
+png("pd.png",height=800,width=600)
+(p.tRange|p.tMin)/(p.tMean|p.lat)/(p.lon|p.prismPpt)/(p.elev|p.tMax)
+dev.off()
+
+### RELATIVE INFLUENCE PLOT
 par(mfrow=c(1,1))
 gbm_full_summary = summary.gbm(my.gbm)
 
@@ -171,19 +391,19 @@ gbm_full_short = gbm_full_summary[gbm_summary_idx,]
 gbm_full_short$var = as.character(gbm_full_short$var)
 
 png("relInf.png")
-colors = ifelse(rev(gbm_full_short$rel.inf) >= 2,'black','snow4')
+colors = ifelse(rev(gbm_full_short$rel.inf) >= 2,'gray','snow4')
 par(mfrow=c(1,1),
-    mar=c(5,18,4,2)+0.1)
+    mar=c(5,10,4,2)+0.1)
 bar = barplot(rev(gbm_full_short$rel.inf),
               horiz = TRUE,
-              xlim = c(0,40),
+              xlim = c(0,30),
               xlab = 'Percent Relative Influence',
               col = colors )
 
 
 axis(2,
      at = bar,
-     labels=rev(c('prism.trange', 'prism.tmin', 'prism.tmean', 'lat', 'lon', 'prism.ppt', 'elev', 'prism.tmax'  )),las = 2)
+     labels=rev(c('Temp. range (C)', 'Min. temp. (C)', 'Mean temp. (C)', 'Lat.', 'Lon.', 'Precip. (mm)', 'Elevation (m)', 'Max. temp. (C)'  )),las = 2)
 dev.off()
 
 ```
