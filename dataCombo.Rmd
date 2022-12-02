@@ -408,3 +408,45 @@ dev.off()
 
 ```
 
+
+```{r}
+# put site x spp info in tidydata form for gg-plotting
+hmap <- db %>% dplyr::select(c(3,11:62)) %>% pivot_longer(.,2:53,names_to="species",values_to="present") %>% distinct()
+hmap %<>% rename(site=Site)
+
+# add HD info
+hd4merge <- sites %>% dplyr::select(Site,hdDens)
+hd4merge %<>% mutate(hdScore=hdDens*1000)
+hd4merge %<>% dplyr::select(-hdDens)
+hd4merge %<>% rename(site=Site)
+hmap %<>% left_join(.,hd4merge)
+
+# order sites by HD-score and species by their (similarity) scores
+hmap %<>% mutate(species=as.factor(species))
+hmap %<>% mutate(species=fct_relevel(species,names(sort(scores$speciesscores))))
+hmap %<>% mutate(site=as.factor(site))
+hmap %<>% mutate(site=fct_relevel(site,hd4merge$site[order(hd4merge$hdScore)]))
+
+
+# get SR at sites to remove SR=0
+siteSR <- hmap %>% group_by(site) %>% summarize(sr=sum(present))
+hmap %<>% left_join(.,siteSR)
+
+#get culi site richness and consider removing rare species
+culiSR <- hmap %>% group_by(species) %>% summarize(siteR=sum(present))
+hmap %<>% left_join(.,culiSR)
+
+for (i in 1:dim(hmap)[1]){
+  if (hmap$present[i]==1){
+    hmap$hdScore[i] <- NA
+  }
+}
+
+hmap %>% dplyr::filter(sr>0 & siteR>2) %>% ggplot(.,aes(x=species,y=site,fill=hdScore))+geom_tile()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),axis.text.y=element_blank(),axis.ticks.y=element_blank())+scale_fill_gradient(low="white", high="gray50",na.value="black")
+
+
+
+sites %>% ggplot(.,aes(x=scoreRank,y=hdDens))+geom_point(col="gray65")+geom_smooth(col="black",se=F,span=1.2)+xlab("Sites rank by vector similarity")+ylab("Level of hemorrhagic disease reporting")+theme_minimal()
+
+```
+
