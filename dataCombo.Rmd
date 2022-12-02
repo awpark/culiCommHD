@@ -406,6 +406,14 @@ axis(2,
      labels=rev(c('Temp. range (C)', 'Min. temp. (C)', 'Mean temp. (C)', 'Lat.', 'Lon.', 'Precip. (mm)', 'Elevation (m)', 'Max. temp. (C)'  )),las = 2)
 dev.off()
 
+
+#### MODEL PERFORMANCE
+preds = predict.gbm(dis.tree_null, dis.boost.test,
+                    n.trees = dis.tree_null$gbm.call$best.trees, type = 'response')
+
+calc.deviance(obs=dis.boost.test$dis.pres, pred = preds,
+              calc.mean=TRUE)
+
 ```
 
 
