@@ -152,3 +152,142 @@ clump.ret.spatial <- BoundaryClump(ret.spatial > 0, order=FALSE)
 ```
 
 
+
+
+Modularity of network
+
+```{r}
+
+getModularity <- function(x, sims, onlyZ=TRUE, useProjection=FALSE){
+  require(metacom)
+  require(igraph)
+  nulls <- metacom::NullMaker(x, sims=sims, method='swap')
+  iNulls <- lapply(nulls, function(x){
+    igraph::graph_from_incidence_matrix(x)
+  })
+  ix <- igraph::graph_from_incidence_matrix(x)
+  if(useProjection){
+    ix <- igraph::bipartite_projection(ix)[[1]]
+    iNulls <- lapply(iNulls, function(x){igraph::bipartite_projection(x)[[1]]})
+  }
+  Qnull <- sapply(iNulls, function(a){
+    igraph::modularity(cluster_walktrap(a))
+  })
+  q <- igraph::modularity(cluster_walktrap(ix))
+  zMod <- (q- mean(Qnull)) / (sd(Qnull))
+  pMod <- 2 * pnorm(-abs(zMod))
+  if(onlyZ){
+    return(zMod)
+  }else{
+    return(c(Q=q, z=zMod, p=pMod))
+  }
+}
+
+```
+
+
+
+
+
+
+
+
+First pass modularity of the bipartite graph 
+
+```{r}
+
+mod1 <- getModularity(ret.spatial>0, sims=1000, onlyZ=FALSE)
+
+```
+     Q             z             p 
+ 3.182671e-01 4.545019e+00  5.493028e-06
+
+
+```{r}
+
+g <- igraph::graph_from_incidence_matrix(ret.spatial>0)
+modules <- igraph::cluster_walktrap(g)
+
+```
+
+
+
+
+```{r}
+#' @title Plot a graph object
+#'
+#' @param g graph object
+#' @param colz colors to use
+#' @param nodeSize Size of nodes
+#' @param colVec What vertex attribute should color nodes? (default = NULL)
+#' @param edgeWidth edge weights e.g., E(g)$weight? (default=1)
+#' 
+#' @return a graph plot
+
+plotGraph <- function(g, lay=layout_nicely(g), 
+	colz=1:5, nodeSize=10, colVec=NULL, edgeWidth=1){
+	if(is.null(colVec)){
+		colVec <- rep(1, length(V(g)))
+	}
+	plot(g, layout=lay, edge.width=edgeWidth, 
+		vertex.size=nodeSize, directed=FALSE,
+		vertex.color=colz[colVec], vertex.label=NA)
+}
+
+```
+
+
+
+Visualize the network, calculating modularity on the bipartite network. I don't think this is _acutally_ what we did in the original manuscript, but I'm not sure. We're now finding 4 modules, not the 2 clumps we did before. However, if we project the bipartite matrix into a graph of sites connected by the number of shared vector species, we recover two modules just like before. 
+
+```{r}
+
+pdf('modularNetwork.pdf', height=4, width=4)
+plotGraph(g, colz=viridis::viridis(4), 
+  colVec=modules$membership)
+dev.off()
+
+```
+
+
+
+
+If we simply project the bipartite graph into a site graph where connections are shared vectors. This recovers the two group results we saw previously.
+
+```{r}
+
+g2 <- bipartite_projection(g)[[1]]
+mod2 <- getModularity(ret.spatial>0, sims=1000, onlyZ=FALSE, useProjection=TRUE)
+
+
+modules2 <- cluster_walktrap(g2)
+
+pdf('modularNetwork2.pdf', height=7, width=7)
+plotGraph(g2, colz=viridis::viridis(4), 
+  colVec=modules2$membership, edgeWidth=E(g2)$weight)
+dev.off()
+
+```
+
+
+    Q             z             p 
+ 2.206874e-01 4.247183e+00  2.164752e-05
+
+
+
+
+
+
+
+
+
+
+Make an image plot like the one currently in the manuscript, rows ordered by disease severity, modules identified with boxes. 
+
+```{r}
+# have not done. Don't see where hdScore is, so I'm holding off for now. 
+colnames(ret.spatial)
+rownames(ret.spatial)
+
+```
+
