@@ -253,10 +253,11 @@ dev.off()
 
 
 If we simply project the bipartite graph into a site graph where connections are shared vectors. This recovers the two group results we saw previously.
-
+ecology
 ```{r}
 
 g2 <- bipartite_projection(g)[[1]]
+#save(g2,file="get_g2.Rda")
 mod2 <- getModularity(ret.spatial>0, sims=1000, onlyZ=FALSE, useProjection=TRUE)
 
 

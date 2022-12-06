@@ -408,11 +408,11 @@ dev.off()
 
 
 #### MODEL PERFORMANCE
-preds = predict.gbm(dis.tree_null, dis.boost.test,
-                    n.trees = dis.tree_null$gbm.call$best.trees, type = 'response')
+#preds = predict.gbm(dis.tree_null, dis.boost.test,
+ #                   n.trees = dis.tree_null$gbm.call$best.trees, type = 'response')
 
-calc.deviance(obs=dis.boost.test$dis.pres, pred = preds,
-              calc.mean=TRUE)
+##calc.deviance(obs=dis.boost.test$dis.pres, pred = preds,
+  #            calc.mean=TRUE)
 
 ```
 
@@ -450,11 +450,46 @@ for (i in 1:dim(hmap)[1]){
   }
 }
 
+load("get_g2.Rda")
+modules2 <- cluster_walktrap(g2)
+mods2 <- data.frame(cbind(modules2$names,modules2$membership))
+mods2 %<>% rename(Site=X1,module=X2)
+sites %<>% left_join(.,mods2)
+
 hmap %>% dplyr::filter(sr>0 & siteR>2) %>% ggplot(.,aes(x=species,y=site,fill=hdScore))+geom_tile()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),axis.text.y=element_blank(),axis.ticks.y=element_blank())+scale_fill_gradient(low="white", high="gray50",na.value="black")
 
+p1 <- sites %>% ggplot(.,aes(x=scoreRank,y=hdDens))+geom_point(aes(col=module))+geom_smooth(col="black",se=F,span=1.2)+xlab("Sites ranked by vector similarity")+ylab("Level of hemorrhagic disease reporting")+theme_classic()+scale_color_manual(values=c("#F8766D","#619CFF"))
+
+#' @title Plot a graph object
+#'
+#' @param g graph object
+#' @param colz colors to use
+#' @param nodeSize Size of nodes
+#' @param colVec What vertex attribute should color nodes? (default = NULL)
+#' @param edgeWidth edge weights e.g., E(g)$weight? (default=1)
+#' 
+#' @return a graph plot
+
+plotGraph <- function(g, lay=layout_nicely(g), 
+	colz=1:5, nodeSize=10, colVec=NULL, edgeWidth=1){
+	if(is.null(colVec)){
+		colVec <- rep(1, length(V(g)))
+	}
+	plot(g, layout=lay, edge.width=edgeWidth, 
+		vertex.size=nodeSize, directed=FALSE,
+		vertex.color=colz[colVec], vertex.label=NA)
+}
+
+library(png)
+png("cluster.png")
+p2 <- plotGraph(g2, colz=c("#F8766D","#619CFF"), 
+  colVec=modules2$membership, edgeWidth=0.1*E(g2)$weight)
+dev.off()
 
 
-sites %>% ggplot(.,aes(x=scoreRank,y=hdDens))+geom_point(col="gray65")+geom_smooth(col="black",se=F,span=1.2)+xlab("Sites rank by vector similarity")+ylab("Level of hemorrhagic disease reporting")+theme_minimal()
+cluster <- readPNG("~/Dropbox/andrew/EHD/culiCommHD/cluster.png",native=T)
+
+p1+inset_element(cluster,0, 0.2, 0.5, 1)
 
 ```
 
